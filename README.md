@@ -4,6 +4,12 @@ Universal AC remote for Flipper Zero. Instead of supporting one AC brand, it lea
 
 UI design based on [flipperzero-mitsubishi-ac-remote](https://github.com/achistyakov/flipperzero-mitsubishi-ac-remote) by Anton Chistyakov.
 
+<img src="img/remote.png" height="360" alt="Smart AC remote screen">
+
+## Screenshots
+
+<img src="img/menu.png" height="160" alt="Main menu"> <img src="img/alarms.png" height="160" alt="Alarms list"> <img src="img/alarm_edit.png" height="160" alt="Alarm editor">
+
 ## Two remote types
 
 AC remotes transmit their complete state (power, mode, temperature, fan, vane) with every button press. A recorded button is therefore a snapshot of one full config, not an incremental step. The app offers two ways to deal with that:
