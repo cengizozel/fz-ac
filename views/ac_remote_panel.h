@@ -60,6 +60,15 @@ void ac_remote_panel_add_label(
     Font font,
     const char* label_str);
 
+// label centered horizontally on x
+void ac_remote_panel_add_label_centered(
+    ACRemotePanel* ac_remote_panel,
+    int index,
+    uint16_t x,
+    uint16_t y,
+    Font font,
+    const char* label_str);
+
 void ac_remote_panel_add_icon(
     ACRemotePanel* ac_remote_panel,
     uint16_t x,

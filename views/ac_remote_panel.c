@@ -19,6 +19,7 @@ typedef struct {
     uint16_t y;
     Font font;
     const char* str;
+    bool centered;
 } LabelElement;
 
 LIST_DEF(LabelList, LabelElement, M_POD_OPLIST)
@@ -248,7 +249,12 @@ static void ac_remote_panel_view_draw_callback(Canvas* canvas, void* _model) {
     for
         M_EACH(label, model->labels, LabelList_t) {
             canvas_set_font(canvas, label->font);
-            canvas_draw_str(canvas, label->x, label->y, label->str);
+            if(label->centered) {
+                canvas_draw_str_aligned(
+                    canvas, label->x, label->y, AlignCenter, AlignBottom, label->str);
+            } else {
+                canvas_draw_str(canvas, label->x, label->y, label->str);
+            }
         }
 }
 
@@ -431,6 +437,31 @@ void ac_remote_panel_add_label(
             label->y = y;
             label->font = font;
             label->str = label_str;
+            label->centered = false;
+        },
+        true);
+}
+
+void ac_remote_panel_add_label_centered(
+    ACRemotePanel* ac_remote_panel,
+    int index,
+    uint16_t x,
+    uint16_t y,
+    Font font,
+    const char* label_str) {
+    furi_assert(ac_remote_panel);
+
+    with_view_model(
+        ac_remote_panel->view,
+        ACRemotePanelModel * model,
+        {
+            LabelElement* label = LabelList_push_raw(model->labels);
+            label->index = index;
+            label->x = x;
+            label->y = y;
+            label->font = font;
+            label->str = label_str;
+            label->centered = true;
         },
         true);
 }
