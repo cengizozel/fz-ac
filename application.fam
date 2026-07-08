@@ -1,0 +1,19 @@
+App(
+    appid="fz_ac",
+    name="AC Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="fz_ac_app",
+    requires=[
+        "storage",
+        "gui",
+        "infrared",
+    ],
+    stack_size=2 * 1024,
+    order=90,
+    fap_description="Universal learning AC remote with multiple profiles and alarms",
+    fap_version="1.0",
+    fap_icon="fz_ac.png",
+    fap_category="Infrared",
+    fap_icon_assets="assets",
+)
