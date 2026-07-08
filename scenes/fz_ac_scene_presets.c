@@ -13,7 +13,7 @@ void fz_ac_scene_presets_on_enter(void* context) {
     Submenu* submenu = app->submenu;
 
     submenu_reset(submenu);
-    submenu_set_header(submenu, "Delete preset");
+    submenu_set_header(submenu, "Delete mode");
     for(uint8_t i = 0; i < app->smart_index.preset_count; i++) {
         submenu_add_item(
             submenu, app->smart_index.presets[i].name, i, fz_ac_scene_presets_submenu_callback, app);

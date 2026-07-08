@@ -29,11 +29,11 @@ void fz_ac_scene_ac_menu_on_enter(void* context) {
         submenu, "Open remote", AcMenuIndexOpen, fz_ac_scene_ac_menu_submenu_callback, app);
     if(app->current_type == AcTypeSmart) {
         submenu_add_item(
-            submenu, "Add preset", AcMenuIndexAddPreset, fz_ac_scene_ac_menu_submenu_callback, app);
+            submenu, "Add mode", AcMenuIndexAddPreset, fz_ac_scene_ac_menu_submenu_callback, app);
         if(app->smart_index.preset_count > 0) {
             submenu_add_item(
                 submenu,
-                "Delete preset",
+                "Delete mode",
                 AcMenuIndexDeletePreset,
                 fz_ac_scene_ac_menu_submenu_callback,
                 app);

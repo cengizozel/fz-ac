@@ -10,7 +10,7 @@ void fz_ac_scene_preset_delete_on_enter(void* context) {
     FzAcApp* app = context;
     DialogEx* dialog = app->dialog_ex;
 
-    dialog_ex_set_header(dialog, "Delete this preset?", 64, 4, AlignCenter, AlignTop);
+    dialog_ex_set_header(dialog, "Delete this mode?", 64, 4, AlignCenter, AlignTop);
     dialog_ex_set_text(dialog, app->preset_buf, 64, 24, AlignCenter, AlignTop);
     dialog_ex_set_left_button_text(dialog, "Cancel");
     dialog_ex_set_right_button_text(dialog, "Delete");

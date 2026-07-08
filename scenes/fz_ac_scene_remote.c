@@ -100,10 +100,11 @@ void fz_ac_scene_remote_on_enter(void* context) {
 
     if(smart) {
         fz_ac_scene_remote_update_smart_labels(app);
+        // current mode name and position sit right under the MODE button
         ac_remote_panel_add_label(
-            panel, RemoteLabelPreset, 34, 72, FontSecondary, app->preset_label);
+            panel, RemoteLabelPreset, 33, 51, FontSecondary, app->preset_label);
         ac_remote_panel_add_label(
-            panel, RemoteLabelPresetPos, 40, 86, FontSecondary, app->preset_pos);
+            panel, RemoteLabelPresetPos, 39, 62, FontSecondary, app->preset_pos);
     } else {
         snprintf(app->temp_str, sizeof(app->temp_str), "%lu", app->temp_display);
     }

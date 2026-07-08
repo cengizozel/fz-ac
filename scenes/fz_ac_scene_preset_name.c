@@ -14,7 +14,7 @@ void fz_ac_scene_preset_name_on_enter(void* context) {
     TextInput* text_input = app->text_input;
 
     app->preset_buf[0] = '\0';
-    text_input_set_header_text(text_input, "Preset name (Cool, Heat...)");
+    text_input_set_header_text(text_input, "Mode name (Cool, Heat...)");
     text_input_set_minimum_length(text_input, 1);
     text_input_set_result_callback(
         text_input,

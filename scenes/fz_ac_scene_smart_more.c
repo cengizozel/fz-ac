@@ -20,8 +20,8 @@ void fz_ac_scene_smart_more_on_enter(void* context) {
     FzAcApp* app = context;
     DialogEx* dialog = app->dialog_ex;
 
-    dialog_ex_set_header(dialog, "Preset saved", 64, 4, AlignCenter, AlignTop);
-    dialog_ex_set_text(dialog, "Add another preset?", 64, 26, AlignCenter, AlignTop);
+    dialog_ex_set_header(dialog, "Mode saved", 64, 4, AlignCenter, AlignTop);
+    dialog_ex_set_text(dialog, "Add another mode?", 64, 26, AlignCenter, AlignTop);
     dialog_ex_set_left_button_text(dialog, "Done");
     dialog_ex_set_right_button_text(dialog, "Add more");
     dialog_ex_set_result_callback(dialog, fz_ac_scene_smart_more_dialog_callback);
