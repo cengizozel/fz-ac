@@ -4,7 +4,9 @@
 
 enum {
     AcMenuIndexOpen,
-    AcMenuIndexRelearn,
+    AcMenuIndexRelearn, // simple only
+    AcMenuIndexAddPreset, // smart only
+    AcMenuIndexDeletePreset, // smart only
     AcMenuIndexRename,
     AcMenuIndexDelete,
 };
@@ -19,12 +21,31 @@ void fz_ac_scene_ac_menu_on_enter(void* context) {
     FzAcApp* app = context;
     Submenu* submenu = app->submenu;
 
+    fz_ac_load_current(app);
+
     submenu_reset(submenu);
     submenu_set_header(submenu, app->ac_names[app->current_ac]);
     submenu_add_item(
         submenu, "Open remote", AcMenuIndexOpen, fz_ac_scene_ac_menu_submenu_callback, app);
-    submenu_add_item(
-        submenu, "Re-learn buttons", AcMenuIndexRelearn, fz_ac_scene_ac_menu_submenu_callback, app);
+    if(app->current_type == AcTypeSmart) {
+        submenu_add_item(
+            submenu, "Add preset", AcMenuIndexAddPreset, fz_ac_scene_ac_menu_submenu_callback, app);
+        if(app->smart_index.preset_count > 0) {
+            submenu_add_item(
+                submenu,
+                "Delete preset",
+                AcMenuIndexDeletePreset,
+                fz_ac_scene_ac_menu_submenu_callback,
+                app);
+        }
+    } else {
+        submenu_add_item(
+            submenu,
+            "Re-learn buttons",
+            AcMenuIndexRelearn,
+            fz_ac_scene_ac_menu_submenu_callback,
+            app);
+    }
     submenu_add_item(
         submenu, "Rename", AcMenuIndexRename, fz_ac_scene_ac_menu_submenu_callback, app);
     submenu_add_item(
@@ -40,7 +61,6 @@ bool fz_ac_scene_ac_menu_on_event(void* context, SceneManagerEvent event) {
        FZ_AC_EVENT_TYPE(event.event) == FzAcCustomEventTypeMenuSelected) {
         switch(FZ_AC_EVENT_VALUE(event.event)) {
         case AcMenuIndexOpen:
-            fz_ac_load_current(app);
             scene_manager_next_scene(app->scene_manager, FzAcSceneRemote);
             break;
         case AcMenuIndexRelearn:
@@ -50,6 +70,18 @@ bool fz_ac_scene_ac_menu_on_event(void* context, SceneManagerEvent event) {
                 "%s",
                 app->ac_names[app->current_ac]);
             scene_manager_next_scene(app->scene_manager, FzAcSceneLearn);
+            break;
+        case AcMenuIndexAddPreset:
+            snprintf(
+                app->learn_target,
+                sizeof(app->learn_target),
+                "%s",
+                app->ac_names[app->current_ac]);
+            app->smart_creating = false;
+            scene_manager_next_scene(app->scene_manager, FzAcScenePresetName);
+            break;
+        case AcMenuIndexDeletePreset:
+            scene_manager_next_scene(app->scene_manager, FzAcScenePresets);
             break;
         case AcMenuIndexRename:
             app->renaming = true;

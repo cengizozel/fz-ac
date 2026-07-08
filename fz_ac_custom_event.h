@@ -9,6 +9,9 @@ typedef enum {
     FzAcCustomEventTypeLearnOk,
     FzAcCustomEventTypeLearnRetry,
     FzAcCustomEventTypeLearnSkip,
+    FzAcCustomEventTypeSweepUp,
+    FzAcCustomEventTypeSweepDown,
+    FzAcCustomEventTypeAlarmEditRebuild,
     FzAcCustomEventTypeTextDone,
     FzAcCustomEventTypeDialogResult,
 } FzAcCustomEventType;

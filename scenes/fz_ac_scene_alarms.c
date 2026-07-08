@@ -20,8 +20,16 @@ void fz_ac_scene_alarms_on_enter(void* context) {
     submenu_reset(submenu);
     submenu_set_header(submenu, "Alarms");
     char label[64];
+    char action[24];
     for(uint32_t i = 0; i < app->alarms.count; i++) {
         const AcAlarm* alarm = &app->alarms.items[i];
+        if(alarm->kind == AcAlarmKindPreset) {
+            snprintf(action, sizeof(action), "%s %u", alarm->preset, alarm->temp);
+        } else if(alarm->kind == AcAlarmKindOff) {
+            snprintf(action, sizeof(action), "OFF");
+        } else {
+            snprintf(action, sizeof(action), "%s", ac_button_labels[alarm->button]);
+        }
         snprintf(
             label,
             sizeof(label),
@@ -29,7 +37,7 @@ void fz_ac_scene_alarms_on_enter(void* context) {
             alarm->enabled ? "" : "[off] ",
             alarm->hour,
             alarm->minute,
-            ac_button_labels[alarm->button],
+            action,
             alarm->ac_name);
         submenu_add_item(submenu, label, i, fz_ac_scene_alarms_submenu_callback, app);
     }
@@ -59,7 +67,6 @@ bool fz_ac_scene_alarms_on_event(void* context, SceneManagerEvent event) {
                 app->edit_alarm.daily = true;
                 app->edit_alarm.hour = 7;
                 app->edit_alarm.minute = 0;
-                app->edit_alarm.button = AcButtonOff;
                 snprintf(
                     app->edit_alarm.ac_name,
                     sizeof(app->edit_alarm.ac_name),

@@ -65,7 +65,7 @@ bool fz_ac_scene_name_on_event(void* context, SceneManagerEvent event) {
         } else {
             fz_ac_make_unique_name(app, app->name_buf, sizeof(app->name_buf));
             snprintf(app->learn_target, sizeof(app->learn_target), "%s", app->name_buf);
-            scene_manager_next_scene(app->scene_manager, FzAcSceneLearn);
+            scene_manager_next_scene(app->scene_manager, FzAcSceneType);
         }
         consumed = true;
     }

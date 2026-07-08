@@ -86,27 +86,67 @@ void fz_ac_refresh_ac_list(FzAcApp* app) {
 
 void fz_ac_load_current(FzAcApp* app) {
     ac_remote_reset(&app->remote);
+    memset(&app->smart_index, 0, sizeof(app->smart_index));
+    app->current_type = AcTypeSimple;
     if(app->current_ac < 0 || app->current_ac >= (int32_t)app->ac_count) return;
+
     char path[FZ_AC_PATH_LEN];
     fz_ac_ac_path(app->ac_names[app->current_ac], path, sizeof(path));
-    ac_remote_load(&app->remote, app->storage, path);
+    app->current_type = ac_file_scan(app->storage, path, &app->smart_index);
+    if(app->current_type == AcTypeSimple) {
+        ac_remote_load(&app->remote, app->storage, path);
+    } else {
+        app->smart_preset = 0;
+        int32_t temp = -1;
+        if(app->smart_index.preset_count > 0) {
+            temp = ac_temp_bits_lowest(app->smart_index.presets[0].temp_bits);
+        }
+        app->smart_temp = (temp > 0) ? temp : 22;
+    }
+}
+
+void fz_ac_smart_send(FzAcApp* app, const char* preset, uint8_t temp) {
+    char path[FZ_AC_PATH_LEN];
+    char name[AC_PRESET_NAME_LEN + 8];
+    fz_ac_ac_path(app->ac_names[app->current_ac], path, sizeof(path));
+    if(preset) {
+        ac_smart_signal_name(name, sizeof(name), preset, temp);
+    } else {
+        snprintf(name, sizeof(name), "%s", AC_OFF_NAME);
+    }
+
+    AcIrSignal signal;
+    memset(&signal, 0, sizeof(signal));
+    if(ac_file_load_signal(&signal, app->storage, path, name)) {
+        notification_message(app->notifications, &sequence_blink_white_100);
+        ac_ir_signal_send(&signal);
+    } else {
+        notification_message(app->notifications, &sequence_blink_red_100);
+    }
+    ac_ir_signal_reset(&signal);
 }
 
 static void fz_ac_alarm_fire(FzAcApp* app, AcAlarm* alarm) {
     bool sent = false;
     char path[FZ_AC_PATH_LEN];
+    char name[AC_PRESET_NAME_LEN + 8];
     fz_ac_ac_path(alarm->ac_name, path, sizeof(path));
 
-    AcRemote remote;
-    memset(&remote, 0, sizeof(remote));
-    if(ac_remote_load(&remote, app->storage, path)) {
-        AcIrSignal* signal = &remote.signals[alarm->button];
-        if(signal->present) {
-            ac_ir_signal_send(signal);
-            sent = true;
-        }
+    if(alarm->kind == AcAlarmKindPreset) {
+        ac_smart_signal_name(name, sizeof(name), alarm->preset, alarm->temp);
+    } else if(alarm->kind == AcAlarmKindOff) {
+        snprintf(name, sizeof(name), "%s", AC_OFF_NAME);
+    } else {
+        snprintf(name, sizeof(name), "%s", ac_button_names[alarm->button]);
     }
-    ac_remote_reset(&remote);
+
+    AcIrSignal signal;
+    memset(&signal, 0, sizeof(signal));
+    if(ac_file_load_signal(&signal, app->storage, path, name)) {
+        ac_ir_signal_send(&signal);
+        sent = true;
+    }
+    ac_ir_signal_reset(&signal);
 
     notification_message(app->notifications, &sequence_double_vibro);
     notification_message(app->notifications, sent ? &sequence_success : &sequence_error);
@@ -131,6 +171,47 @@ static void fz_ac_check_alarms(FzAcApp* app) {
         }
     }
     if(dirty) ac_alarms_save(&app->alarms, app->storage, FZ_AC_ALARMS_PATH);
+}
+
+static void fz_ac_rx_callback(void* context, InfraredWorkerSignal* signal) {
+    FzAcApp* app = context;
+    furi_mutex_acquire(app->signal_mutex, FuriWaitForever);
+    ac_ir_signal_from_worker(&app->capture, signal);
+    furi_mutex_release(app->signal_mutex);
+    view_dispatcher_send_custom_event(
+        app->view_dispatcher, FZ_AC_EVENT(FzAcCustomEventTypeIrCaptured, 0));
+}
+
+void fz_ac_rx_alloc(FzAcApp* app) {
+    if(app->rx_worker) return;
+    app->rx_worker = infrared_worker_alloc();
+    infrared_worker_rx_set_received_signal_callback(app->rx_worker, fz_ac_rx_callback, app);
+    infrared_worker_rx_enable_signal_decoding(app->rx_worker, true);
+    infrared_worker_rx_enable_blink_on_receiving(app->rx_worker, true);
+}
+
+void fz_ac_rx_free(FzAcApp* app) {
+    if(!app->rx_worker) return;
+    fz_ac_rx_stop(app);
+    infrared_worker_free(app->rx_worker);
+    app->rx_worker = NULL;
+    furi_mutex_acquire(app->signal_mutex, FuriWaitForever);
+    ac_ir_signal_reset(&app->capture);
+    furi_mutex_release(app->signal_mutex);
+}
+
+void fz_ac_rx_start(FzAcApp* app) {
+    if(app->rx_worker && !app->rx_active) {
+        infrared_worker_rx_start(app->rx_worker);
+        app->rx_active = true;
+    }
+}
+
+void fz_ac_rx_stop(FzAcApp* app) {
+    if(app->rx_worker && app->rx_active) {
+        infrared_worker_rx_stop(app->rx_worker);
+        app->rx_active = false;
+    }
 }
 
 static bool fz_ac_custom_event_callback(void* context, uint32_t event) {
@@ -183,12 +264,16 @@ static FzAcApp* fz_ac_app_alloc(void) {
     app->learn_view = learn_view_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, FzAcViewLearn, learn_view_get_view(app->learn_view));
+    app->sweep_view = sweep_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, FzAcViewSweep, sweep_view_get_view(app->sweep_view));
 
     app->signal_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     app->str = furi_string_alloc();
     app->current_ac = -1;
     app->editing_alarm = -1;
     app->temp_display = 20;
+    app->sweep_temp_start = 16;
 
     fz_ac_refresh_ac_list(app);
     ac_alarms_load(&app->alarms, app->storage, FZ_AC_ALARMS_PATH);
@@ -209,13 +294,18 @@ static void fz_ac_app_free(FzAcApp* app) {
     ac_remote_panel_free(app->panel);
     view_dispatcher_remove_view(app->view_dispatcher, FzAcViewLearn);
     learn_view_free(app->learn_view);
+    view_dispatcher_remove_view(app->view_dispatcher, FzAcViewSweep);
+    sweep_view_free(app->sweep_view);
 
     scene_manager_free(app->scene_manager);
     view_dispatcher_free(app->view_dispatcher);
 
+    fz_ac_rx_free(app);
     ac_remote_reset(&app->remote);
     ac_remote_reset(&app->staged);
     ac_ir_signal_reset(&app->capture);
+    ac_ir_signal_reset(&app->off_capture);
+    for(size_t i = 0; i < AC_SWEEP_MAX; i++) ac_ir_signal_reset(&app->sweep[i]);
     furi_mutex_free(app->signal_mutex);
     furi_string_free(app->str);
 

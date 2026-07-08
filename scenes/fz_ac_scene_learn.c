@@ -1,14 +1,5 @@
 #include "../fz_ac_app_i.h"
 
-static void fz_ac_scene_learn_rx_callback(void* context, InfraredWorkerSignal* signal) {
-    FzAcApp* app = context;
-    furi_mutex_acquire(app->signal_mutex, FuriWaitForever);
-    ac_ir_signal_from_worker(&app->capture, signal);
-    furi_mutex_release(app->signal_mutex);
-    view_dispatcher_send_custom_event(
-        app->view_dispatcher, FZ_AC_EVENT(FzAcCustomEventTypeIrCaptured, 0));
-}
-
 static void fz_ac_scene_learn_view_callback(void* context, LearnViewEvent event) {
     FzAcApp* app = context;
     FzAcCustomEventType type;
@@ -26,20 +17,6 @@ static void fz_ac_scene_learn_view_callback(void* context, LearnViewEvent event)
     view_dispatcher_send_custom_event(app->view_dispatcher, FZ_AC_EVENT(type, 0));
 }
 
-static void fz_ac_scene_learn_rx_start(FzAcApp* app) {
-    if(!app->rx_active) {
-        infrared_worker_rx_start(app->rx_worker);
-        app->rx_active = true;
-    }
-}
-
-static void fz_ac_scene_learn_rx_stop(FzAcApp* app) {
-    if(app->rx_active) {
-        infrared_worker_rx_stop(app->rx_worker);
-        app->rx_active = false;
-    }
-}
-
 static void fz_ac_scene_learn_show_current(FzAcApp* app) {
     learn_view_set_button(
         app->learn_view,
@@ -50,7 +27,7 @@ static void fz_ac_scene_learn_show_current(FzAcApp* app) {
 }
 
 static void fz_ac_scene_learn_finish(FzAcApp* app) {
-    fz_ac_scene_learn_rx_stop(app);
+    fz_ac_rx_stop(app);
 
     bool any_present = false;
     for(size_t i = 0; i < AC_BUTTON_COUNT; i++) {
@@ -83,7 +60,7 @@ static void fz_ac_scene_learn_advance(FzAcApp* app) {
     app->learn_index++;
     if(app->learn_index < AC_BUTTON_COUNT) {
         fz_ac_scene_learn_show_current(app);
-        fz_ac_scene_learn_rx_start(app);
+        fz_ac_rx_start(app);
     } else {
         fz_ac_scene_learn_finish(app);
     }
@@ -99,12 +76,8 @@ void fz_ac_scene_learn_on_enter(void* context) {
     learn_view_set_callback(app->learn_view, fz_ac_scene_learn_view_callback, app);
     fz_ac_scene_learn_show_current(app);
 
-    app->rx_worker = infrared_worker_alloc();
-    infrared_worker_rx_set_received_signal_callback(
-        app->rx_worker, fz_ac_scene_learn_rx_callback, app);
-    infrared_worker_rx_enable_signal_decoding(app->rx_worker, true);
-    infrared_worker_rx_enable_blink_on_receiving(app->rx_worker, true);
-    fz_ac_scene_learn_rx_start(app);
+    fz_ac_rx_alloc(app);
+    fz_ac_rx_start(app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, FzAcViewLearn);
 }
@@ -117,7 +90,7 @@ bool fz_ac_scene_learn_on_event(void* context, SceneManagerEvent event) {
         uint16_t type = FZ_AC_EVENT_TYPE(event.event);
         switch(type) {
         case FzAcCustomEventTypeIrCaptured:
-            fz_ac_scene_learn_rx_stop(app);
+            fz_ac_rx_stop(app);
             furi_mutex_acquire(app->signal_mutex, FuriWaitForever);
             ac_ir_signal_describe(&app->capture, app->str);
             furi_mutex_release(app->signal_mutex);
@@ -132,7 +105,7 @@ bool fz_ac_scene_learn_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
             break;
         case FzAcCustomEventTypeLearnSkip:
-            fz_ac_scene_learn_rx_stop(app);
+            fz_ac_rx_stop(app);
             ac_ir_signal_reset(&app->staged.signals[app->learn_index]);
             fz_ac_scene_learn_advance(app);
             consumed = true;
@@ -142,7 +115,7 @@ bool fz_ac_scene_learn_on_event(void* context, SceneManagerEvent event) {
             ac_ir_signal_reset(&app->capture);
             furi_mutex_release(app->signal_mutex);
             learn_view_set_captured(app->learn_view, false, "");
-            fz_ac_scene_learn_rx_start(app);
+            fz_ac_rx_start(app);
             consumed = true;
             break;
         default:
@@ -154,11 +127,6 @@ bool fz_ac_scene_learn_on_event(void* context, SceneManagerEvent event) {
 
 void fz_ac_scene_learn_on_exit(void* context) {
     FzAcApp* app = context;
-    fz_ac_scene_learn_rx_stop(app);
-    infrared_worker_free(app->rx_worker);
-    app->rx_worker = NULL;
-    furi_mutex_acquire(app->signal_mutex, FuriWaitForever);
-    ac_ir_signal_reset(&app->capture);
-    furi_mutex_release(app->signal_mutex);
+    fz_ac_rx_free(app);
     ac_remote_reset(&app->staged);
 }
