@@ -2,7 +2,7 @@
 
 Universal AC remote for Flipper Zero. Instead of supporting one AC brand, it learns any AC's remote over IR, stores multiple ACs, and can press buttons on a schedule.
 
-UI design based on [flipperzero-mitsubishi-ac-remote](https://github.com/achistyakov/flipperzero-mitsubishi-ac-remote) by Anton Chistyakov.
+UI design, button panel view and icon assets based on [flipperzero-mitsubishi-ac-remote](https://github.com/achistyakov/flipperzero-mitsubishi-ac-remote) by Anton Chistyakov (MIT).
 
 <img src="img/remote.png" height="360" alt="Smart AC remote screen">
 
@@ -55,7 +55,3 @@ ufbt launch # build, install and run on the Flipper
 2. Smart AC: capture OFF, then add presets by sweeping temperatures as prompted.
 3. Pick the AC from the main menu to open its remote.
 4. Alarms: add an alarm, pick the AC, action (preset + temp or OFF), time, once or daily.
-
-## Credits
-
-Button panel view and icon assets from [flipperzero-mitsubishi-ac-remote](https://github.com/achistyakov/flipperzero-mitsubishi-ac-remote) by Anton Chistyakov, MIT license.
